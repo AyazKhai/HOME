@@ -6,10 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 
 namespace HOME.ViewModels
@@ -45,19 +47,30 @@ namespace HOME.ViewModels
             AddCommand = new RelayCommand(AddEquipment);
             EditCommand = new RelayCommand(EditEquipment, CanEditEquipment);
             DeleteCommand = new AsyncRelayCommand(DeleteEquipmentAsync);
+
+            // Загружаем данные при инициализации ViewModel
+            LoadEquipmentsAsync().ConfigureAwait(false);
         }
 
         private async Task LoadEquipmentsAsync()
         {
-            var equipments = await _repository.GetAllAsync();
-            Equipments.Clear();
-            foreach (var equipment in equipments)
+            try
             {
-                Equipments.Add(equipment);
+                var equipments = await _repository.GetAllAsync();
+                Equipments.Clear();
+                foreach (var equipment in equipments)
+                {
+                    Equipments.Add(equipment);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Ошибка при загрузке оборудования: {ex}");
+                MessageBox.Show($"Не удалось загрузить данные: {ex.Message}");
             }
         }
 
-        private void AddEquipment()
+        private async void AddEquipment()
         {
             var newEquipment = new Equipment
             {
@@ -65,12 +78,18 @@ namespace HOME.ViewModels
                 Type = EquipmentType.Printer,
                 Status = Status.InStock
             };
-            _repository.AddAsync(newEquipment); // Убедитесь, что это асинхронный вызов
-            Equipments.Add(newEquipment); // Добавляем в ObservableCollection
 
-            SelectedEquipment = newEquipment; // Выделяем новый элемент
-
-
+            try
+            {
+                await _repository.AddAsync(newEquipment);
+                Equipments.Add(newEquipment);
+                SelectedEquipment = newEquipment;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Ошибка при добавлении оборудования: {ex}");
+                MessageBox.Show($"Не удалось добавить оборудование: {ex.Message}");
+            }
         }
 
         private bool CanEditEquipment() => SelectedEquipment != null;
@@ -80,7 +99,7 @@ namespace HOME.ViewModels
             var editWindow = new EditEquipmentWindow(SelectedEquipment, _repository);
             if (editWindow.ShowDialog() == true)
             {
-                LoadEquipmentsAsync(); // Обновляем список после редактирования
+                LoadEquipmentsAsync().ConfigureAwait(false);
             }
         }
 
@@ -88,8 +107,16 @@ namespace HOME.ViewModels
         {
             if (SelectedEquipment != null)
             {
-                await _repository.DeleteAsync(SelectedEquipment.Id);
-                Equipments.Remove(SelectedEquipment);
+                try
+                {
+                    await _repository.DeleteAsync(SelectedEquipment.Id);
+                    Equipments.Remove(SelectedEquipment);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Ошибка при удалении оборудования: {ex}");
+                    MessageBox.Show($"Не удалось удалить оборудование: {ex.Message}");
+                }
             }
         }
 

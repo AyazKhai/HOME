@@ -18,6 +18,7 @@ namespace HOME.ViewModels
     {
         private readonly IEquipmentRepository _repository;
         private Equipment _editableEquipment;
+        private readonly Equipment _originalEquipment;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -40,7 +41,8 @@ namespace HOME.ViewModels
         public EditEquipmentViewModel(IEquipmentRepository repository, Equipment equipmentToEdit)
         {
             _repository = repository;
-            EditableEquipment = new Equipment(equipmentToEdit);
+            _originalEquipment = equipmentToEdit; // Сохраняем оригинал
+            EditableEquipment = new Equipment(equipmentToEdit); // Работаем с копией
 
             SaveCommand = new AsyncRelayCommand(SaveAsync);
             CancelCommand = new RelayCommand(Cancel);
@@ -52,13 +54,14 @@ namespace HOME.ViewModels
             {
                 Debug.WriteLine($"Попытка сохранения: ID={EditableEquipment.Id}, Name={EditableEquipment.Name}");
 
-                // 1. Сохраняем в БД
-                await _repository.UpdateAsync(EditableEquipment);
+                _originalEquipment.Name = EditableEquipment.Name;
+                _originalEquipment.Type = EditableEquipment.Type;
+                _originalEquipment.Status = EditableEquipment.Status;
 
-                // 2. Диагностика
+                await _repository.UpdateAsync(_originalEquipment);
+
                 Debug.WriteLine("Успешно сохранено в БД");
 
-                // 3. Закрываем окно
                 CloseWindow(true);
             }
             catch (Exception ex)

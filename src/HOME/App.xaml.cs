@@ -30,7 +30,7 @@ namespace HOME
         private void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite("Data Source=equipment.db"));
+                options.UseSqlite("Data Source=..\\..\\..\\equipment.db"));
 
             services.AddScoped<IEquipmentRepository, EquipmentRepository>();
 
